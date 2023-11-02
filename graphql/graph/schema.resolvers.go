@@ -6,7 +6,12 @@ package graph
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"graphql/graph/auth"
 	"graphql/graph/model"
+	"log"
+	"net/http"
 )
 
 // CreateCompany is the resolver for the createCompany field.
@@ -26,16 +31,36 @@ func (r *mutationResolver) Signup(ctx context.Context, input model.NewUser) (*mo
 
 // Login is the resolver for the login field.
 func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*model.Token, error) {
-	token, _ := r.S.Authenticate(email, password)
+	token, err := r.S.Authenticate(email, password)
+	if err != nil {
+		log.Println("errr")
+		return &model.Token{}, err
+	}
 
-	a := &model.Token{
+	tkn := &model.Token{
 		Tkn: token,
 	}
-	return a, nil
+	return tkn, nil
 }
 
 // ViewAllCompanies is the resolver for the viewAllCompanies field.
 func (r *queryResolver) ViewAllCompanies(ctx context.Context) ([]*model.Company, error) {
+	req := ctx.Value("request").(*http.Request)
+
+	token, err := auth.ExtractTokenFromHeader(req)
+	if err != nil {
+		return nil, err
+	}
+	if err != nil {
+		return nil, errors.New("Token not found in headers")
+	}
+
+	// Validate the token
+	err = auth.ValidateToken(token)
+	if err != nil {
+		return nil, fmt.Errorf("Token validation failed: %w", err)
+	}
+
 	return r.S.ViewAllCompanies()
 }
 

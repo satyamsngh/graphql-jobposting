@@ -19,6 +19,9 @@ func NewService(ms *models.Conn) Service {
 }
 func (s *Service) Authenticate(email, password string) (string, error) {
 	claims, err := s.C.Find(email, password)
+	if err != nil {
+		return "", err
+	}
 	tkn, err := auth.GenerateToken(claims)
 	if err != nil {
 		log.Printf("error in generating tkn")
